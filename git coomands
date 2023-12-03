@@ -1,0 +1,119 @@
+Git installation:
+# sudo apt update
+# sudo apt install git
+# git --version
+
+Setup git:
+# git config --global user.name "Your Name"
+# git config --global user.email "youremail@domain.com"
+# git init
+
+
+1.To add file:
+# git add filename
+
+
+2.To check working tree status:
+# git status
+
+3.To commit staged files to local repository:
+# git commit -m "commit message"
+
+
+4. Staging and committing multiple files:
+# git commit  -a  -m "commit message"
+
+5.Git rm command deletes file from git repository as well as users system.
+# git rm <filename>
+
+6.Git remove file from git repository but not from system
+# git rm --cached <filename>
+
+7.To force remove a stage files
+# git rm -f <filename>
+
+
+8.Git commit log:
+# git log
+
+
+
+11.Working with remote repository:
+# Create new GIT HUB account.
+# Create new remote repository.
+
+
+12.Adding remote repository to local:
+# git clone <remote repo url> 
+
+13.Push changes to remote repo
+# git push origin master
+
+
+14.Remote repo list:
+# git remote -v
+
+15.Git fetch:
+# git fetch origin 
+
+16.Git pull
+# git pull origin
+
+17.Git Pull request
+# Create PR remotely
+
+
+
+
+	2. # first switch to branch main
+	then
+	# git branch c1
+	madan@madan-virtual-machine:~/git/myfirstrepo$ Switched to branch 'c1'
+	
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git commit -m "modified s1.txt"
+	[c1 76a2670] modified s1.txt
+	 1 file changed, 1 insertion(+), 1 deletion(-)
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git push origin c1
+	Username for 'https://github.com': madandevops11
+	Password for 'https://madandevops11@github.com':
+	Enumerating objects: 5, done.
+	Counting objects: 100% (5/5), done.
+	Delta compression using up to 4 threads
+	Compressing objects: 100% (2/2), done.
+	Writing objects: 100% (3/3), 263 bytes | 263.00 KiB/s, done.
+	Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+	remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+	remote:
+	remote: Create a pull request for 'c1' on GitHub by visiting:
+	remote:      https://github.com/madandevops11/myfirstrepo/pull/new/c1
+	remote:
+	To https://github.com/madandevops11/myfirstrepo.git
+	 * [new branch]      c1 -> c1
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git checkout main
+	Switched to branch 'main'
+	Your branch is up to date with 'origin/main'.
+	madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+	file1.txt  file2.txt  readme.txt  s1.txt
+	madan@madan-virtual-machine:~/git/myfirstrepo$ vi s1.txt
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git add .
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git commit -m "modified s1.txt in main"
+	[main 2fb7dd8] modified s1.txt in main
+	 1 file changed, 1 insertion(+), 1 deletion(-)
+	madan@madan-virtual-machine:~/git/myfirstrepo$ git push origin main
+	Username for 'https://github.com': madandevops11
+	Password for 'https://madandevops11@github.com':
+	Enumerating objects: 5, done.
+	Counting objects: 100% (5/5), done.
+	Delta compression using up to 4 threads
+	Compressing objects: 100% (2/2), done.
+	Writing objects: 100% (3/3), 270 bytes | 270.00 KiB/s, done.
+	Total 3 (delta 1), reused 0 (delta 0), pack-reused 0
+	remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+	To https://github.com/madandevops11/myfirstrepo.git
+	   8ee3cad..2fb7dd8  main -> main
+	madan@madan-virtual-machine:~/git/myfirstrepo$
+	
+	
+	Now raise PR in git hub from c1 to main branch which will show conflicts.
+
+
