@@ -1,0 +1,124 @@
+Git stash:
+
+madan@madan-virtual-machine:~/git/myfirstrepo$ vi readme.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git status
+On branch c1
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   readme.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        c1.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash
+Saved working directory and index state WIP on c1: 92446fe added s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+c1.txt  file1.txt  file2.txt  my-app  readme.txt  s1.txt  s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ cat readme.txt
+hi this is my first repository
+
+this is day2 git  version control module
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash list
+stash@{0}: WIP on c1: 92446fe added s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash show
+ readme.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash list
+stash@{0}: WIP on c1: 92446fe added s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash show stash@{0}
+ readme.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+madan@madan-virtual-machine:~/git/myfirstrepo$ git stash apply
+On branch c1
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   readme.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        c1.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+c1.txt  file1.txt  file2.txt  my-app  readme.txt  s1.txt  s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ cat readme.txt
+hi this is my first repository
+
+this is day3 git  version control module
+--------------
+Summary: add file and git add . ; then git stash and git stash show:
+To bring back the stashed file: git stash apply stash@{0}
+
+
+Git reset:
+madan@madan-virtual-machine:~/git/repo2$ ls
+file1.txt  file2.txt  file3.txt  file4  file45  readme
+madan@madan-virtual-machine:~/git/repo2$ touch file9
+madan@madan-virtual-machine:~/git/repo2$ git status
+On branch b2
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        file9
+
+nothing added to commit but untracked files present (use "git add" to track)
+madan@madan-virtual-machine:~/git/repo2$ git add file9
+madan@madan-virtual-machine:~/git/repo2$ git status
+On branch b2
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   file9
+
+madan@madan-virtual-machine:~/git/repo2$ ls
+file1.txt  file2.txt  file3.txt  file4  file45  file9  readme
+madan@madan-virtual-machine:~/git/repo2$ git reset --hard
+HEAD is now at 594b03f added file4,45
+madan@madan-virtual-machine:~/git/repo2$ ls
+file1.txt  file2.txt  file3.txt  file4  file45  readme
+madan@madan-virtual-machine:~/git/repo2$ git branch
+  b1
+* b2
+
+
+
+
+
+
+
+
+Git rebase example:
+madan@madan-virtual-machine:~/git/myfirstrepo$ git checkout c1
+Switched to branch 'c1'
+madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+file1.txt  file2.txt  readme.txt  s1.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git branch c2
+madan@madan-virtual-machine:~/git/myfirstrepo$ git checkout c2
+Switched to branch 'c2'
+madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+file1.txt  file2.txt  readme.txt  s1.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ touch s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ ls
+file1.txt  file2.txt  readme.txt  s1.txt  s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git status
+On branch c2
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        s2.txt
+
+nothing added to commit but untracked files present (use "git add" to track)
+madan@madan-virtual-machine:~/git/myfirstrepo$ git add .
+madan@madan-virtual-machine:~/git/myfirstrepo$ git commit -m "added s2.txt"
+[c2 92446fe] added s2.txt
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 s2.txt
+madan@madan-virtual-machine:~/git/myfirstrepo$ git checkout c1
+Switched to branch 'c1'
+madan@madan-virtual-machine:~/git/myfirstrepo$ git rebase c2 c1  (source_branch target_branch)
+Successfully rebased and updated refs/heads/c1.
+madan@madan-virtual-machine:~/git/myfirstrepo$
+
+Moral : c1 branch file will be rebased(updated) with c2 branch.
+
