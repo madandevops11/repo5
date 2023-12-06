@@ -1,0 +1,68 @@
+Go to official maven page:
+
+https://maven.apache.org/
+
+
+
+First install Java:
+sudo apt update
+
+Install java and maven using link below:
+https://www.digitalocean.com/community/tutorials/install-maven-linux-ubuntu
+
+Step 1: Download the JDK Binaries
+
+$ wget https://download.java.net/java/GA/jdk13.0.1/cec27d702aa74d5a8630c65ae61e4305/9/GPL/openjdk-13.0.1_linux-x64_bin.tar.gz  
+$ tar -xvf openjdk-13.0.1_linux-x64_bin.tar.gz
+$ mv jdk-13.0.1 /opt/
+
+From <https://www.digitalocean.com/community/tutorials/install-maven-linux-ubuntu> 
+
+
+Step 2: Setting JAVA_HOME and Path Environment Variables
+JAVA_HOME='/opt/jdk-13.0.1'
+PATH="$JAVA_HOME/bin:$PATH"
+export PATH
+
+From <https://www.digitalocean.com/community/tutorials/install-maven-linux-ubuntu> 
+
+
+Step 3: Verify the Java Installation
+java -version
+
+From <https://www.digitalocean.com/community/tutorials/install-maven-linux-ubuntu> 
+
+
+
+Now install setup Maven:
+sudo apt install maven
+
+mvn --version
+
+Create sample project and run Maven.
+https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
+
+mvn archetype:generate -DgroupId=com.mycompany.app -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false
+
+cd my-app
+Tree
+
+# Check maven version
+mvn --version
+Apache Maven 3.6.3
+Maven home: /usr/share/maven
+Java version: 13.0.1, vendor: Oracle Corporation, runtime: /opt/jdk-13.0.1
+Default locale: en_IN, platform encoding: UTF-8
+OS name: "linux", version: "5.19.0-42-generic", arch: "amd64", family: "unix
+
+
+Build the Project
+mvn package
+
+
+You may test the newly compiled and packaged JAR with the following command:
+java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
+
+
+Which will print the quintessential:
+Hello World!
