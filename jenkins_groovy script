@@ -1,3 +1,19 @@
+For creating free style project:
+
+repo URL: https://github.com/madandevops11/repo8.git
+branch : maven
+
+shell commands as below:
+
+cd my-app
+echo "project build is in progress"
+mvn clean && mvn package
+echo "project test is in progress"
+java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
+echo "project build complete"
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 // Scripted pipeline //
 
 node {
