@@ -1,0 +1,64 @@
+// Scripted pipeline //
+
+node {
+	stage('Build') {
+	// Build the application
+	sh 'whoami'
+	sh 'cd /home/edureka/repos/repo8/my-app && sudo mvn clean && sudo mvn package'	
+	}
+	stage('Test'){
+	// Running the tests
+	sh 'cd /home/edureka/repos/repo8/my-app && sudo java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+	}
+
+}
+
++=============================================================
+//declarative pipeline example 1
+pipeline {
+	agent any
+	stages {	
+	  stage('Build') {
+         steps {
+         // Build the application
+         sh 'cd repo8/my-app && sudo mvn clean && sudo mvn package'
+         }
+	    }
+	  stage('Test'){
+	     steps{
+	     // Running the tests
+	     sh 'cd repo8/my-app && sudo mvn test'
+	     sh 'cd repo8/my-app && sudo java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+	     }
+	  }
+	}
+}
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//declarative pipeline example 2
+pipeline {
+	agent any
+	stages {	
+	  stage('Build') {
+         steps {
+         // Build the application
+         sh 'pwd'
+         sh 'cd repo8/my-app && sudo mvn clean && sudo mvn package'
+         }
+	    }
+	  stage('Test'){
+	     steps{
+	     // Running the tests
+	     sh 'cd repo8/my-app && sudo mvn test'
+	     sh 'cd repo8/my-app && sudo java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+	     }
+	     }
+	  stage('Test 2'){
+	      steps{
+	     // Running the tests
+	     sh 'echo "test2 phase running"'
+	     } 	     
+	  }
+	}
+}
