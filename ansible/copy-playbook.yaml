@@ -1,0 +1,17 @@
+---
+- name: Ansible playbook to copy files
+  hosts: testgroup
+  become: yes
+  tasks:
+    - name: Copy playbook to wroker node
+      copy:
+        src: /home/edureka/ansible/test.txt
+        dest: /tmp/test/
+        owner: joe
+        mode: '777'
+
+================================================================
+
+
+
+Note: amke sure in source or anisble master machine the test.txt file is avaialbe in path /home/edureka/ansible/test.txt
