@@ -1,0 +1,12 @@
+To run playbook commands:
+
+ansible-playbook <playbook-name.yaml>
+
+
+
+
+Ad-hoc commands:
+
+ansible all -a "free -m"
+ansible all -a "df -h"
+ansible all -a "uptime"
