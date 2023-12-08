@@ -1,0 +1,12 @@
+---
+
+ - import_playbook: package-playbook.yaml
+ - import_playbook: copy-playbook.yaml
+ - import_playbook: useradd-playbook.yaml
+ - import_playbook: variable-useradd.yaml
+
+
+
+ ==========================================
+
+ Note: make sure above individual playbooks are available
