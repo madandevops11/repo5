@@ -1,0 +1,14 @@
+---
+- name: Ansible playbook to install apache2 package
+  hosts: kslave1
+  become: yes
+  tasks:
+    - name: Install apache https package
+      apt: 
+        name: apache2
+        state: present
+
+  =========================================================
+
+
+  Note: check the package in target machine by command: systemctl status apache2.service
