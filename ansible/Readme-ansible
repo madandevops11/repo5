@@ -1,8 +1,19 @@
+To add ansible host entry as below:
+
+sudo vi /etc/ansible/hosts
+
+[testgroup]
+kslave1 ansible_host=172.31.3.159
+======================================================
+
+
+
 To run playbook commands:
 
 ansible-playbook <playbook-name.yaml>
 
 
+====================================================
 
 
 Ad-hoc commands:
