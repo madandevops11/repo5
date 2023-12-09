@@ -3,60 +3,89 @@ Git installation:
 # sudo apt install git
 # git --version
 
+
+# Create a new remote repo in git hub.
+
+# git clone <git repo url>
+
 Setup git:
 # git config --global user.name "Your Name"
 # git config --global user.email "youremail@domain.com"
-# git init
 
 
-1.To add file:
+1. Check the branch first:
+# git branch
+
+2. Create New branch
+# git branch <branchname>
+
+3. Switch to new branch
+# git checkout <branchname>
+
+
+4. Check status
+# git status 
+
+5. To add file:
 # git add filename
 
 
-2.To check working tree status:
+6.To check working tree status:
 # git status
 
-3.To commit staged files to local repository:
+7. to stage file/folder(adding)
+# git add <file/foldername>    or git add .
+
+
+8.To commit staged files to local repository:
 # git commit -m "commit message"
 
 
-4. Staging and committing multiple files:
+9. Staging and committing multiple files:
 # git commit  -a  -m "commit message"
 
-5.Git rm command deletes file from git repository as well as users system.
+
+10.Push changes to remote repo
+# git push origin <branchname>
+username: ---> give your git hub username
+password: given the token generated
+
+
+
+
+===================================================
+
+
+10. Git rm command deletes file from git repository as well as users system.
 # git rm <filename>
 
-6.Git remove file from git repository but not from system
+11.Git remove file from git repository but not from system
 # git rm --cached <filename>
 
-7.To force remove a stage files
+12.To force remove a stage files
 # git rm -f <filename>
 
 
-8.Git commit log:
+13.Git commit log:
 # git log
-
-
-
-11.Working with remote repository:
+14.Working with remote repository:
 # Create new GIT HUB account.
 # Create new remote repository.
 
 
-12.Adding remote repository to local:
+15.Adding remote repository to local:
 # git clone <remote repo url> 
 
-13.Push changes to remote repo
-# git push origin master
 
 
-14.Remote repo list:
+
+17. Remote repo list:
 # git remote -v
 
-15.Git fetch:
+18. Git fetch:
 # git fetch origin 
 
-16.Git pull
+19. Git pull
 # git pull origin
 
 17.Git Pull request
