@@ -54,6 +54,16 @@ password: given the token generated
 
 
 ===================================================
+GitHub Desktop UI tool: Everything with UI actions. It works only on MAC and Windows
+Download Source: https://desktop.github.com/
+
+VS Code Editor will automatically adapt with GitHub Desktop
+Please install GitHub Desktop and immediately install VSCode
+VsCode Download URL: https://code.visualstudio.com/download
+
+Documentation: https://docs.github.com/en/desktop
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 10. Git rm command deletes file from git repository as well as users system.
