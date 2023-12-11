@@ -1,0 +1,61 @@
+Docker cli commands:
+	1. docker ps
+	2. docker ps -a
+	3. docker images
+	4. docker run -dit ubuntu
+	5. docker stop <container id>
+	6. docker start <container id>
+	7. docker pull <image name>
+	8. docker tag <docker image id> <dockerhub username>/imagename:firstimage
+          
+# docker login
+give your docker hub user name and password:
+    
+	9. docker push <docker hub name>/<docker image name>:firstimage
+	
+	
+	10. docker export <container name>   >    <container name.tar>
+	
+	
+
+	11. docker search
+	12. docker ps
+	13. docker kill <container name>
+	14. docker commit
+	15. docker commit <container name>
+
+	
+	16. Docker port binding
+       #  docker run --name nginx -d -p 8081:80 nginx
+           8081 --> Host port
+           80 --> docker container port
+
+      #  docker run --name jenkins -d -p 8082:8080 jenkins/jenkins
+     
+
+	17. Docker detached vs foreground.
+          #  docker run -it ubuntu /bin/bash
+          #  docker run -dit ubuntu /bin/bash
+
+	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	Dockerfile instructions:
+	
+	1. FROM
+	2. RUN
+	3. COPY
+	4. CMD
+	5. EXPOSE
+
+Demo: 
+# vi Dockerfile
+
+   FROM ubuntu
+   CMD [ "echo", "hello world" ]
+
+# docker build .
+# docker tag <docker image id>  <dockerhub name>/<docker image name>:tag
+  
+
+# docker run --name test <docker image id>
+
