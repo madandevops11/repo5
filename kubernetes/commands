@@ -1,0 +1,41 @@
+To check pods status:
+kubectl get pods
+
+To check deployment status:
+kubectl get deployments
+
+
+To scale replicas status:
+kubectl scale deployment <deploymnet name>--replicas=4
+
+To check cluster info:
+kubectl cluster-info
+
+TO exec into pod:
+kubectl exec -it nginx-deployment-cbdccf466-cxtdg /bin/bash
+
+To copy file from host machine to kubernetes pod:
+kubectl cp /home/ubuntu/kubernetes/devops.txt  nginx-deployment-cbdccf466-cxtdg:/home
+
+To delete a pod:
+kubectl delete pod nginx-deployment-cbdccf466-cxtdg
+
+To check daemonset:
+kubectl get daemonset -A
+
+To create a deployment:
+kubectl apply -f nginx-deployment.yaml
+
+
+To describe a pod:
+kubectl describe pod nginx-deployment-cbdccf466-2hg9j
+
+
+TO perform rolloing update:
+kubectl set image deployments/nginx-deployment nginx=nginx:1.25
+
+To check deployment status:
+kubectl describe deployment nginx-deployment
+
+To watch the any events:
+kubectl get pods --watch
