@@ -1,3 +1,16 @@
+To install ansible:
+  1. sudo apt-add-repository ppa:ansible/ansible
+	2. sudo apt update
+	3. sudo apt install ansible
+	4. sudo mkdir -p /etc/ansible
+	5. sudo vi /etc/ansible/hosts
+	          [servers]
+            server1 ansible_host=203.0.113.111
+            [all:vars]
+            ansible_python_interpreter=/usr/bin/python3
+
+
+
 To add ansible host entry as below:
 
 sudo vi /etc/ansible/hosts
