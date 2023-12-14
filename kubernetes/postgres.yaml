@@ -1,0 +1,111 @@
+kubectl apply -f configmap.yaml
+--------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  labels:
+    app: postgres
+data:
+  POSTGRES_DB: postgresdb
+  POSTGRES_USER: admin
+  POSTGRES_PASSWORD: test123
+-----------------------------
+
+
+
+
+
+
+
+
+kubectl apply -f storage.yaml
+--------------------------------------------
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-pv-volume1
+  labels:
+    type: local
+    app: cps-postgres-db
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/postgres"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: cps-postgres-db-claim
+  labels:
+    app: cps-postgres-db
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+-----------------------------------
+
+
+
+
+
+
+
+
+kubectl apply -f postgres.yaml
+------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cps-postgres-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cps-postgres-db
+  template:
+    metadata:
+      labels:
+        app: cps-postgres-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:10.1
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: cps-postgres-db
+      volumes:
+        - name: cps-postgres-db
+          persistentVolumeClaim:
+            claimName: cps-postgres-db-claim
+
+--------------------------------------------
+
+
+
+
+
+
+
+
+
+Validate: 
+kubectl logs -f <postgres-pod name>
+
+
+To login to postgres pod:
+kubectl exec -it <postgres pod name> --  psql -h localhost -U <postgres db name> --password -p 5432 postgres
