@@ -1,0 +1,74 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: cps-redis-pv-volume
+  labels:
+    type: local
+    app: cps-redis
+spec:
+  storageClassName: local-storage
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/redis"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: cps-redis-claim
+  labels:
+    app: cps-redis
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    name: cps-redis
+    component: cache
+  name: cps-redis
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: cps-redis
+  template:
+    metadata:
+      labels:
+        name: cps-redis
+        component: cache
+    spec:
+      containers:
+      - name: cps-redis
+        image: redis:latest
+        ports:
+        - containerPort: 6379
+          name: cps-redis
+        envFrom:
+          - configMapRef:
+              name: redis-config
+        volumeMounts:
+        - mountPath: /data/redis
+          name: cps-redis-pv-volume
+      volumes:
+        - name: cps-redis-pv-volume
+          persistentVolumeClaim:
+            claimName: cps-redis-claim
+
+
+
+
+-----------------------------------------------------
+
+Save the above as redis.yaml
+# Then run kubectl apply -f redis.yaml
