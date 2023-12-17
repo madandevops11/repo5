@@ -1,3 +1,7 @@
+Ansible documentation link:
+
+https://docs.ansible.com/ansible/2.9/modules/list_of_all_modules.html
+
 To install ansible:
   1. sudo apt-add-repository ppa:ansible/ansible
 	2. sudo apt update
