@@ -1,0 +1,12 @@
+To download apache maven use below link:
+# https://dlcdn.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz
+
+
+
+To download apache tomcat:
+# https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.97/bin/apache-tomcat-8.5.97.tar.gz
+
+
+
+To install python common software properties:
+# sudo apt-get install software-properties-common
