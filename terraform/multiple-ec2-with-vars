@@ -1,0 +1,105 @@
+main.tf
+========================================================================
+provider "aws" {
+  region = "us-east-1"
+}
+
+locals {
+  serverconfig = [
+    for srv in var.configuration : [
+      for i in range(1, srv.no_of_instances+1) : {
+        instance_name = "${srv.application_name}-${i}"
+        instance_type = srv.instance_type
+        subnet_id   = srv.subnet_id
+        ami = srv.ami
+        security_groups = srv.vpc_security_group_ids
+      }
+    ]
+  ]
+}
+
+// We need to Flatten it before using it
+locals {
+  instances = flatten(local.serverconfig)
+}
+
+resource "aws_instance" "web" {
+
+  for_each = {for server in local.instances: server.instance_name =>  server}
+
+  ami           = each.value.ami
+  instance_type = each.value.instance_type
+  vpc_security_group_ids = each.value.security_groups
+  user_data = <<EOF
+#!/bin/bash
+echo "Copying the SSH Key to the remote server"
+echo -e "" >> /home/ubuntu/.ssh/authorized_keys
+
+echo "Changing the hostname to ${each.value.instance_name}"
+hostname ${each.value.instance_name}
+echo "${each.value.instance_name}" > /etc/hostname
+
+EOF
+  subnet_id = each.value.subnet_id
+  tags = {
+    Name = "${each.value.instance_name}"
+  }
+}
+
+output "instances" {
+  value       = "${aws_instance.web}"
+  description = "All Machine details"
+}
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+dev.tfvars
+====================
+configuration = [
+  {
+    "application_name" : "GritfyApp-dev001",
+    "ami" : "ami-09e67e426f25ce0d7",
+    "no_of_instances" : "1",
+    "instance_type" : "t2.nano",
+    "subnet_id" : "subnet-0674482a49f964aad",
+    "vpc_security_group_ids" : ["sg-04660a97e8e5f1d47"]
+    "root_block_device" : {
+        volume_size = 8
+        volume_type = "gp2"
+  }
+  },
+  {
+    "application_name" : "GrityWeb-dev002",
+    "ami" : "ami-0747bdcabd34c712a",
+    "instance_type" : "t2.nano",
+    "no_of_instances" : "1"
+    "subnet_id" : "subnet-0674482a49f964aad"
+    "vpc_security_group_ids" : ["sg-04660a97e8e5f1d47"]
+  }
+]
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+variables.tf
+=================
+variable "configuration" {
+  description = "The total configuration, List of Objects/Dictionary"
+  default = [{}]
+}
+
+
+
+
+
+
+=====================================
+terraform console -var-file=dev.tfvars
+> local.serverconfig
+> local.instances
+
+terraform validate
+terraform init
+terraform plan -var-file=dev.tfvars -out devtfplan.out
+terraform apply "devtfplan.out"
+
+
+
