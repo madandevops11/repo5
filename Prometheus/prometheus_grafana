@@ -1,0 +1,48 @@
+Prometheus setup on minikube:
+
+Make sure kubernetes cluster is running:
+
+ A. Install helm
+ # sudo snap install helm --classic
+
+	1. Add prometheus repository
+    # helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
+	2. Install provided Helm chart for Prometheus
+	# helm install prometheus prometheus-community/prometheus
+	
+	3. Expose the prometheus-server service via NodePort
+   # kubectl expose service prometheus-server --type=NodePort --target-port=9090 --name=prometheus-server-np
+
+
+    4 . Check services:
+     #  kubectl get svc
+
+	5. Expose prometheus service URL:
+	# minikube service prometheus-server-np --url
+	
+   6. Port forward the prometheus server port:
+   # kubectl port-forward --address <server IP> svc/prometheus-server-np 8888:80
+    Now we can access the prometheus url from <server_private_ip>:8888
+   
+
+Installing Graphana:
+
+	1. Add graphana repo
+	# helm repo add grafana https://grafana.github.io/helm-charts
+	
+	2. Install grapha chart
+	# helm install grafana grafana/grafana
+	
+	3. Expose graphana svc via nodeport:
+           # kubectl expose service grafana --type=NodePort --target-port=3000 --name=grafana-np
+
+	4. Get graphana admin credentials:
+           # kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+	5. Expose graphana svc in minikube:
+	# minikube service grafana-np --url
+
+       6. Port forward the Grafana server port:
+       # kubectl port-forward --address 172.31.93.148 svc/grafana-np 3000:80
+Now we can access the grafana url from <server_private_ip>:3000
