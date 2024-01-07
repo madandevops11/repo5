@@ -1,0 +1,5 @@
+######## Values file ########
+
+
+app: nginx
+image: nginx:1.16.1
