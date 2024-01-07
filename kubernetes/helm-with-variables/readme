@@ -1,0 +1,11 @@
+Helm install using below command:
+
+# helm install nginx-helm .
+
+To check helm installed:
+
+# helm list
+
+
+To delete helm installed:
+# helm uninstall <chart name>
