@@ -1,3 +1,5 @@
+######################## Kubernetes official documentation ---> https://kubernetes.io/  ########################
+
 To check pods status:
 kubectl get pods
 
@@ -19,6 +21,12 @@ kubectl cp /home/ubuntu/kubernetes/devops.txt  nginx-deployment-cbdccf466-cxtdg:
 
 To delete a pod:
 kubectl delete pod nginx-deployment-cbdccf466-cxtdg
+
+To check statefulset:
+kubbectl get statefulset
+
+To check deployments:
+kubectl get deployments
 
 To check daemonset:
 kubectl get daemonset -A
