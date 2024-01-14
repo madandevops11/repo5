@@ -1,0 +1,11 @@
+###### Please execute commands in same sequence ####################
+kubectl apply -f mongo-configmap.yaml  
+kubectl apply -f mongo-secret.yaml 
+kubectl apply -f storage.yaml
+kubectl apply -f mongo-deploymnet.yaml 
+kubectl apply -f web-app.yaml
+
+
+
+##### Port Forward the webapp service using below command ##########
+kubectl port-forward --address 172.31.48.29 svc/webapp-service 30100:3000
