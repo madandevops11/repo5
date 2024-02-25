@@ -1,0 +1,31 @@
+node("test node1") {
+    stage('Git clone') {
+    sh 'rm -rf *'
+    sh 'git clone -b maven https://github.com/madandevops11/myfirstrepo.git'
+    }
+    stage('Build') {
+    sh 'cd myfirstrepo/my-app && mvn clean && mvn package'
+    }
+    stage('Test') {
+    sh 'cd myfirstrepo/my-app && java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+    }
+}
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Note: the (test node1) is the node on which above job will run, if you remove the node then it will run on jenkins master node itself as below:
+
+
+
+node {
+    stage('Git clone') {
+    sh 'rm -rf *'
+    sh 'git clone -b maven https://github.com/madandevops11/myfirstrepo.git'
+    }
+    stage('Build') {
+    sh 'cd myfirstrepo/my-app && mvn clean && mvn package'
+    }
+    stage('Test') {
+    sh 'cd myfirstrepo/my-app && java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App'
+    }
+}
