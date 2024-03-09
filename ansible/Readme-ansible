@@ -15,6 +15,12 @@ To install ansible:
 
 
 
+=================================================
+
+From ansible-master: add the public key to worker node authorized key file in  .ssh/authorized_keys. 
+
+
+
 To add ansible host entry as below:
 
 sudo vi /etc/ansible/hosts
