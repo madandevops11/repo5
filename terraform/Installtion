@@ -28,3 +28,8 @@ Install Terraform on ubuntu:
 #  sudo apt update
 #  sudo apt install terraform -y
 #  terraform --version
+
+
+
+Terraform reqistry/documentation
+https://registry.terraform.io/
