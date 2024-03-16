@@ -8,6 +8,10 @@ Make sure kubernetes cluster is running:
 	1. Add prometheus repository
     # helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 
+
+        1.a Update repo
+# helm repo update
+
 	2. Install provided Helm chart for Prometheus
 	# helm install prometheus prometheus-community/prometheus
 	
@@ -30,6 +34,9 @@ Installing Graphana:
 
 	1. Add graphana repo
 	# helm repo add grafana https://grafana.github.io/helm-charts
+
+       1.a Update repo
+       # helm repo update
 	
 	2. Install grapha chart
 	# helm install grafana grafana/grafana
