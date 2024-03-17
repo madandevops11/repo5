@@ -52,9 +52,4 @@ spec:
 
 
 
-#######################################################
 
-
-kubectl port-forward --address 172.31.48.29 svc/webapp-service 30100:3000
-
-open brower  serverIp:30100
