@@ -1,7 +1,7 @@
 ###### Please execute commands in same sequence ####################
 kubectl apply -f mongo-configmap.yaml  
 kubectl apply -f mongo-secret.yaml 
-kubectl apply -f storage.yaml
+kubectl apply -f pv.yaml
 kubectl apply -f mongo-deploymnet.yaml 
 kubectl apply -f web-app.yaml
 
