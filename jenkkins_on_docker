@@ -1,3 +1,5 @@
+############### Make sure the VM is having minkum 2 cores CPU and 2 GB RAM ###################
+
 To run Jenkins on local VM as docker 
 
 docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --restart=on-failure jenkins/jenkins:latest
