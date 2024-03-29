@@ -1,0 +1,62 @@
+docker swarm clsuter setup:
+
+
+docker swarm init --advertise-addr <Server IP address>
+
+madan@madan-virtual-machine:~$ docker swarm init --advertise-addr 192.168.1.7
+Swarm initialized: current node (kml5cngkmgyy8z3pq1kzjkrov) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-0bwlosi553ul392ri48bm0zmyp1stptnae0rmix1i77cuznqx9-399xqhbujuso7wprs3muwhv37 192.168.1.7:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+madan@madan-virtual-machine:~$ docker node ls
+ID                            HOSTNAME                STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+kml5cngkmgyy8z3pq1kzjkrov *   madan-virtual-machine   Ready     Active         Leader           23.0.1
+
+
+
+# Allow ports in both master and worker VM:
+sudo ufw allow from any to any port 2377 proto tcp
+
+
+In worker node:
+# docker swarm join --token SWMTKN-1-0bwlosi553ul392ri48bm0zmyp1stptnae0rmix1i77cuznqx9-399xqhbujuso7wprs3muwhv37 192.168.1.7:2377
+
+
+
+
+# In master VM:
+
+# docker node ls
+
+madan@madan-virtual-machine:~$ docker node ls
+ID                            HOSTNAME                 STATUS    AVAILABILITY   MANAGER STATUS   ENGINE VERSION
+35bbbptsy3b14uc0vauh6ccov     devops-virtual-machine   Ready     Active                          23.0.1
+kml5cngkmgyy8z3pq1kzjkrov *   madan-virtual-machine    Ready     Active         Leader           23.0.1
+madan@madan-virtual-machine:~$
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+Testing:]
+
+Create Nginx service
+# sudo docker service create --name web-server --publish 8084:80 nginx:latest
+
+Verify status of deployment
+# docker service ls
+
+
+# Scale up:
+docker service scale web-server=3
+
+
+# access the application:
+Open browser: localhost:8084
