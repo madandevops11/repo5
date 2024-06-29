@@ -7,6 +7,7 @@ Docker cli commands:
 	6. docker start <container id>
 	7. docker pull <image name>
 	8. docker tag <docker image id> <dockerhub username>/imagename:firstimage
+         a) To login to container --> docker exec -it <conatiner id or name>
           
 # docker login
 give your docker hub user name and password:
