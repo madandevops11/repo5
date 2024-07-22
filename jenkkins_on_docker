@@ -6,8 +6,9 @@ docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --re
 
 
 After this open the browser and enter url localhost:8080
+Or Open browser publicip:8080
 
-
+Check for initial admin password in docker logs -f <container id>
 
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
