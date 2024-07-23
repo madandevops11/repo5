@@ -23,3 +23,10 @@ pipeline {
 		}
 		}
 	}
+
+
+
+
+============================================================================
+Jenkins documentation: 
+https://www.jenkins.io/doc/book/pipeline/
