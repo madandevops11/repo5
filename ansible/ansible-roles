@@ -1,0 +1,76 @@
+To create a ansible role
+
+# ansible galaxy init <rolename>
+eg: ansible galaxy init apache2
+    ansible galaxy init prerequisites
+
+ubuntu@ansible-master:~/ansible/roles$ tree
+.
+├── apache2
+│   ├── README.md
+│   ├── defaults
+│   │   └── main.yml
+│   ├── files
+│   ├── handlers
+│   │   └── main.yml
+│   ├── meta
+│   │   └── main.yml
+│   ├── tasks
+│   │   └── main.yml
+│   ├── templates
+│   ├── tests
+│   │   ├── inventory
+│   │   └── test.yml
+│   └── vars
+│       └── main.yml
+
+├── prerequisites
+│   ├── README.md
+│   ├── defaults
+│   │   └── main.yml
+│   ├── files
+│   ├── handlers
+│   │   └── main.yml
+│   ├── meta
+│   │   └── main.yml
+│   ├── tasks
+│   │   └── main.yml
+│   ├── templates
+│   ├── tests
+│   │   ├── inventory
+│   │   └── test.yml
+│   └── vars
+│       └── main.yml
+└── stack.yaml
+
+Add the tasks/main.yaml contenet as below under apache2 role:
+ubuntu@ansible-master:~/ansible/roles$ cat apache2/tasks/main.yml
+---
+- name: Install apache web server
+  apt:
+   name: apache2
+   state: present
+   update_cache: yes
+
+
+Add the tasks/main.yaml contenet as below under prerequisites role:
+---
+- name: Install git
+  apt:
+   name: git
+   state: present
+   update_cache: yes
+
+
+-----------------------------------------
+
+Run the roles using main or stack yaml
+ubuntu@ansible-master:~/ansible/roles$ cat stack.yaml
+---
+- hosts: all
+  become: yes
+  roles:
+    - apache2
+
+
+To run playbook: ansible-playbook stack.yaml
