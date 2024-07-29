@@ -1,0 +1,101 @@
+The 'metrics-server' addon is enabled
+$ minikube addons enable metrics-server
+
+
+For kubeadm cluster:
+$ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+Validate metrics server if its enabled:
+$ minikube addons list
+
+
+Create php-apache.yaml deployed file as below:
+------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  selector:
+    matchLabels:
+      run: php-apache
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: registry.k8s.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 500m
+          requests:
+            cpu: 200m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+  labels:
+    run: php-apache
+spec:
+  ports:
+  - port: 80
+  selector:
+    run: php-apache
+------------------------------------------
+
+
+create the deployed of php-apache:
+$ kubectl apply -f php-apache.yaml
+
+
+Create Horizontal Pod Autoscaler
+$ kubectl autoscale deployment php-apache --cpu-percent=50 --min=1 --max=10  
+
+
+
+Check the current status of autoscaler:
+$ kubectl get hpa
+
+
+
+Increase the load and the stop the load
+$ kubectl run -it --rm load-generator --image=busybox /bin/sh
+If you don't see a command prompt, try pressing enter.
+/ # while true; do wget -q -O- http://php-apache; done    
+
+
+You should get response as OK!OK!OK!OK!OK!....
+
+
+
+Let's stop the load.
+CTRL + C
+
+$ kubectl get hpa --watch
+
+
+$ kubectl get deployment php-apache
+
+$ kubectl get pods
+
+
+-----------------------------------------
+
+Reference output:
+
+$ kubectl get hpa --watch
+NAME         REFERENCE               TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+php-apache   Deployment/php-apache   170%/50%   1         10        1          3m12s
+php-apache   Deployment/php-apache   170%/50%   1         10        4          3m15s
+php-apache   Deployment/php-apache   104%/50%   1         10        4          4m
+php-apache   Deployment/php-apache   13%/50%    1         10        4          5m
+php-apache   Deployment/php-apache   0%/50%     1         10        4          6m
+php-apache   Deployment/php-apache   0%/50%     1         10        4          9m46s
+php-apache   Deployment/php-apache   0%/50%     1         10        2          10m
+php-apache   Deployment/php-apache   0%/50%     1         10        2          10m
+php-apache   Deployment/php-apache   0%/50%     1         10        1          11m
