@@ -58,6 +58,13 @@ OS name: "linux", version: "5.19.0-42-generic", arch: "amd64", family: "unix
 
 Build the Project
 mvn package
+####### If we get error for java old version run below commands ######
+sudo apt install -y openjdk-18-jre
+which java
+JAVA_HOME='/usr/lib/jvm/java-18-openjdk-amd64/bin/java'
+PATH="$JAVA_HOME/bin:$PATH"
+export PATH
+java --version
 
 
 You may test the newly compiled and packaged JAR with the following command:
