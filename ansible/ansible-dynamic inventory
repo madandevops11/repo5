@@ -1,1 +1,54 @@
 https://devopscube.com/setup-ansible-aws-dynamic-inventory/
+
+
+
+ubuntu@k8s-master:~/ansible$ cat aws_ec2.yaml
+---
+plugin: amazon.aws.aws_ec2
+
+regions:
+  - us-east-1
+
+filters:
+  instance-state-name: running
+
+hostnames:
+  - private-ip-address
+
+
+compose:
+  ansible_host: private_ip_address
+
+ubuntu@k8s-master:~/ansible$ cat simple.yml
+---
+- name: Simple server tasks
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Get hostname
+      ansible.builtin.command: hostname
+      register: hostname_result
+
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ hostname_result.stdout }}"
+
+    - name: Check uptime
+      ansible.builtin.command: uptime
+      register: uptime_result
+
+    - name: Display uptime
+      ansible.builtin.debug:
+        msg: "Uptime: {{ uptime_result.stdout }}"
+ubuntu@k8s-master:~/ansible$
+
+
+
+
+ansible-inventory -i aws_ec2.yaml --graph
+Above command shows the inventory list
+
+ansible-playbook -i aws_ec2.yaml simple.yml
+Above command will fetch dynamic invetory and execute playbook
