@@ -47,116 +47,10 @@ echo
 Save that password temporarily.
 
 Username:
-
 admin
-5. Install the Argo CD CLI
 
-On your Ubuntu machine:
 
-curl -sSL -o argocd-linux-amd64 \
-  https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-
-sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-
-rm argocd-linux-amd64
-
-The official CLI installation documentation provides this Linux installation method.
-
-Check:
-
-argocd version --client
-6. First test using port-forward
-
-Before configuring ingress, test Argo CD directly:
-
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-
-Then from the same machine:
-
-argocd login localhost:8080 --username admin --password '<PASSWORD>' --insecure
-
-Check:
-
-argocd account get-user-info
-
-You should see:
-
-Username: admin
-Logged In: true
-
-This confirms that Argo CD itself is working.
-
-7. Expose Argo CD through your existing ingress-nginx
-
-You already have ingress-nginx, so we can use it.
-
-For a simple lab setup, I recommend terminating TLS at nginx and running Argo CD internally in HTTP mode.
-
-Create:
-
-vi argocd-ingress.yaml
-
-Put:
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: argocd-cmd-params-cm
-  namespace: argocd
-data:
-  server.insecure: "true"
-
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: argocd-ingress
-  namespace: argocd
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-spec:
-  ingressClassName: nginx
-  rules:
-    - http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: argocd-server
-                port:
-                  name: http
-
-Apply:
-
-kubectl apply -f argocd-ingress.yaml
-
-Restart Argo CD server so the configuration is picked up:
-
-kubectl rollout restart deployment argocd-server -n argocd
-
-Check:
-
-kubectl get pods -n argocd
-
-Argo CD's ingress documentation specifically describes disabling Argo CD's internal TLS when TLS is terminated by ingress-nginx.
-
-8. Check the ingress
-kubectl get ingress -n argocd
-
-You should see something similar to:
-
-NAME             CLASS   HOSTS   ADDRESS
-argocd-ingress   nginx   *       54.173.178.225
-
-Since you're using the EC2 public IP rather than a DNS hostname, you can access:
-
-http://54.173.178.225/
-
-However, because you already have your nginx application using /, I recommend giving Argo CD a separate hostname when you move beyond basic testing.
-
-9. Better approach for your EC2 lab
-
+5. Login to Argo CD UI
 Since you previously used a public IP and don't want to depend on a DNS name, an easier way to test Argo CD is to expose its service using NodePort.
 
 kubectl patch svc argocd-server -n argocd \
@@ -170,7 +64,7 @@ You'll get something like:
 
 argocd-server   NodePort   10.x.x.x   <none>   80:30xxx/TCP,443:30yyy/TCP
 
-
+Open browser: http://<publicip>:<nodeport>
 
 
 
