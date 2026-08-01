@@ -1,4 +1,4 @@
-ariable "configuration" {
+variable "configuration" {
   description = "EC2 configuration"
 
   type = list(object({
