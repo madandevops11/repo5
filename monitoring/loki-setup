@@ -1,0 +1,627 @@
+1. Create monitoring namespace
+kubectl create namespace monitoring
+
+Check:
+
+kubectl get ns
+2. Install Helm repository
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+Verify:
+
+helm repo list
+3. Configure Kubernetes storage
+
+Your kubeadm cluster initially had:
+
+kubectl get sc
+
+No resources found
+
+This caused:
+
+pod has unbound immediate PersistentVolumeClaims
+
+For AWS EC2 kubeadm, install/configure the AWS EBS CSI driver and create a gp3 StorageClass.
+
+Verify:
+
+kubectl get pods -n kube-system | grep ebs
+
+You should have the controller and node components running.
+
+Then:
+
+kubectl get sc
+
+Expected:
+
+NAME            PROVISIONER       VOLUMEBINDINGMODE
+gp3 (default)   ebs.csi.aws.com   WaitForFirstConsumer
+4. Test EBS before installing Loki
+
+This is a very useful step.
+
+Create a test PVC:
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-test
+  namespace: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 1Gi
+
+Apply:
+
+kubectl apply -f ebs-test.yaml
+
+Check:
+
+kubectl get pvc -n monitoring
+
+Expected:
+
+ebs-test   Bound
+
+Once this works, Loki's PVC can use the same storage class.
+
+5. Loki configuration
+
+Your initial Loki installation failed because scalable/distributed Loki requires object storage.
+
+The error was:
+
+Cannot run scalable targets (backend, read, write)
+or distributed targets without an object storage backend.
+
+For a small kubeadm lab, use Loki's monolithic/single-binary mode rather than distributed mode.
+
+Your working values.yaml should be based on this approach:
+
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+
+  commonConfig:
+    replication_factor: 1
+
+  storage:
+    type: filesystem
+
+  schemaConfig:
+    configs:
+      - from: "2024-04-01"
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+singleBinary:
+  replicas: 1
+
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 10Gi
+
+gateway:
+  enabled: false
+
+backend:
+  replicas: 0
+
+read:
+  replicas: 0
+
+write:
+  replicas: 0
+
+chunksCache:
+  enabled: false
+
+resultsCache:
+  enabled: false
+
+lokiCanary:
+  enabled: true
+
+test:
+  enabled: false
+
+Then install:
+
+helm install loki grafana/loki \
+  -n monitoring \
+  -f values.yaml
+
+Check:
+
+kubectl get pods -n monitoring
+
+Expected:
+
+loki-0   2/2   Running
+
+Check PVC:
+
+kubectl get pvc -n monitoring
+
+Expected:
+
+storage-loki-0   Bound
+6. Verify Loki
+
+Check service:
+
+kubectl get svc -n monitoring
+
+You should have:
+
+loki   ClusterIP   ...   3100/TCP
+
+Test Loki:
+
+kubectl port-forward svc/loki 3100:3100 -n monitoring
+
+In another terminal:
+
+curl http://localhost:3100/ready
+
+Expected:
+
+ready
+
+You can also check:
+
+curl http://localhost:3100/metrics
+7. Install Promtail
+
+Promtail is deployed as a DaemonSet, so each Kubernetes node gets a Promtail pod.
+
+Create:
+
+vi promtail-values.yaml
+
+Use:
+
+config:
+  clients:
+    - url: http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push
+
+  snippets:
+    pipelineStages:
+      - cri: {}
+
+    scrapeConfigs: |
+      - job_name: kubernetes-pods
+
+        kubernetes_sd_configs:
+          - role: pod
+
+        relabel_configs:
+
+          - source_labels:
+              - __meta_kubernetes_namespace
+            target_label: namespace
+
+          - source_labels:
+              - __meta_kubernetes_pod_name
+            target_label: pod
+
+          - source_labels:
+              - __meta_kubernetes_pod_container_name
+            target_label: container
+
+          - source_labels:
+              - __meta_kubernetes_pod_node_name
+            target_label: node_name
+
+          - action: replace
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            separator: /
+            regex: (.*)/(.*)
+            replacement: /var/log/pods/*$1/$2/*.log
+            target_label: __path__
+Important
+
+Do not add:
+
+extraVolumes:
+
+or:
+
+extraVolumeMounts:
+
+The Promtail chart already mounts the required Kubernetes log directories.
+
+Install:
+
+helm install promtail grafana/promtail \
+  -n monitoring \
+  -f promtail-values.yaml
+8. Verify Promtail
+kubectl get pods -n monitoring -o wide
+
+Expected:
+
+promtail-xxxxx   1/1   Running
+
+For multiple Kubernetes nodes:
+
+promtail-xxxxx   1/1   Running   k8s-master
+promtail-yyyyy   1/1   Running   k8s-worker01
+
+Check logs:
+
+kubectl logs daemonset/promtail -n monitoring --tail=100
+
+You want to see:
+
+tail routine: started
+path=/var/log/pods/...
+
+This confirms Promtail is actually reading Kubernetes logs.
+
+9. Important Promtail error we fixed
+
+Initially you had:
+
+no path for target
+
+This means:
+
+Promtail discovered pod
+        ↓
+but didn't know which log file to read
+
+The important configuration that fixed it was:
+
+- action: replace
+  source_labels:
+    - __meta_kubernetes_pod_uid
+    - __meta_kubernetes_pod_container_name
+  separator: /
+  regex: (.*)/(.*)
+  replacement: /var/log/pods/*$1/$2/*.log
+  target_label: __path__
+
+After that:
+
+promtail   1/1 Running
+
+and:
+
+tail routine: started
+
+appeared.
+
+10. Verify Loki is receiving logs
+
+Port-forward:
+
+kubectl port-forward svc/loki 3100:3100 -n monitoring
+
+Then:
+
+curl http://localhost:3100/loki/api/v1/labels
+
+You should get labels similar to:
+
+{
+  "status": "success",
+  "data": [
+    "container",
+    "namespace",
+    "node_name",
+    "pod"
+  ]
+}
+
+This proves:
+
+Promtail → Loki
+
+is working.
+
+11. Install Grafana
+
+Install:
+
+helm install grafana grafana/grafana \
+  -n monitoring \
+  --set adminPassword=admin123 \
+  --set service.type=NodePort
+
+Check:
+
+kubectl get svc grafana -n monitoring
+
+Example:
+
+grafana   NodePort   80:32000/TCP
+
+Get your node public IP:
+
+kubectl get nodes -o wide
+
+Then open:
+
+http://<NODE-PUBLIC-IP>:<NODEPORT>
+
+Login:
+
+Username: admin
+Password: admin123
+12. Add Loki datasource to Grafana
+
+Go to:
+
+Connections
+   ↓
+Data Sources
+   ↓
+Add data source
+   ↓
+Loki
+
+Set URL:
+
+http://loki.monitoring.svc.cluster.local:3100
+
+Click:
+
+Save & Test
+
+You should get a successful connection.
+
+13. Test logs in Grafana
+
+Go to:
+
+Explore
+
+Select:
+
+Loki
+
+Choose Code mode.
+
+Run:
+
+{namespace="monitoring"}
+
+You should see Loki/Grafana/Promtail logs.
+
+Try:
+
+{namespace=~".+"}
+
+For Loki:
+
+{pod="loki-0"}
+
+For Promtail:
+
+{pod=~"promtail.*"}
+
+For ArgoCD:
+
+{namespace="argocd"}
+14. Create a simple Grafana dashboard
+
+Go to:
+
+Dashboards
+   ↓
+New
+   ↓
+New dashboard
+   ↓
+Add visualization
+
+Select:
+
+Loki
+Panel: Kubernetes logs
+
+Query:
+
+{namespace=~".+"}
+
+Visualization:
+
+Logs
+
+Save as:
+
+Kubernetes Logs
+15. Log count dashboard
+
+For a graph showing log volume:
+
+sum(
+  count_over_time(
+    {namespace=~".+"}[$__interval]
+  )
+)
+
+Visualization:
+
+Time series
+
+Don't use this query with the Logs visualization.
+
+You previously got:
+
+Data is missing a string field
+
+because count_over_time() returns numeric data, while the Logs visualization expects log/string fields.
+
+16. Logs by namespace
+
+Use:
+
+sum by(namespace) (
+  count_over_time(
+    {namespace=~".+"}[$__interval]
+  )
+)
+
+Visualization:
+
+Time series
+17. Error logs
+{namespace=~".+"} |= "error"
+
+Visualization:
+
+Logs
+18. Import dashboard
+
+In Grafana:
+
+Dashboards
+ → New
+ → Import
+
+Enter:
+
+13639
+
+Click:
+
+Load
+
+Select your:
+
+Loki
+
+datasource.
+
+Then:
+
+Import
+
+If the imported dashboard has queries containing:
+
+stream=~"$stream"
+
+but your Loki labels don't contain stream, remove that matcher.
+
+For example, change:
+
+{namespace=~"$namespace", stream=~"$stream", container=~"$container"}
+
+to:
+
+{namespace=~"$namespace", container=~"$container"}
+19. Final verification
+
+Run these:
+
+Kubernetes
+kubectl get nodes
+Storage
+kubectl get sc
+
+Expected:
+
+gp3 (default)
+Loki
+kubectl get pods -n monitoring
+
+Expected:
+
+loki-0   2/2   Running
+Promtail
+kubectl get pods -n monitoring
+
+Expected:
+
+promtail-xxxxx   1/1   Running
+Grafana
+kubectl get pods -n monitoring
+
+Expected:
+
+grafana-xxxxx   1/1   Running
+Services
+kubectl get svc -n monitoring
+
+Expected approximately:
+
+loki       ClusterIP
+grafana    NodePort
+Final working architecture
+                   AWS EC2 kubeadm cluster
+                   =======================
+
+                    ┌─────────────────┐
+                    │ Kubernetes Pods │
+                    └────────┬────────┘
+                             │
+                             ▼
+                       /var/log/pods
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │    Promtail     │
+                    │   DaemonSet     │
+                    └────────┬────────┘
+                             │
+                  HTTP /loki/api/v1/push
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │      Loki       │
+                    │    StatefulSet  │
+                    │       PVC       │
+                    │       gp3       │
+                    └────────┬────────┘
+                             │
+                         LogQL
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │     Grafana     │
+                    │     NodePort    │
+                    └─────────────────┘
+                             │
+                             ▼
+                      Browser / User
+The key troubleshooting lessons from your setup
+No StorageClass
+      ↓
+Loki PVC Pending
+      ↓
+Install EBS CSI + gp3
+      ↓
+PVC Bound
+      ↓
+Loki Running
+      ↓
+Promtail had "no path for target"
+      ↓
+Add __path__ relabel configuration
+      ↓
+Promtail 1/1 Running
+      ↓
+Promtail tails /var/log/pods
+      ↓
+Loki receives labels/logs
+      ↓
+Grafana Explore works
+      ↓
+Dashboard
