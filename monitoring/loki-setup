@@ -407,6 +407,7 @@ Run:
 
 {namespace="monitoring"}
 
+select "visulization as logs"
 You should see Loki/Grafana/Promtail logs.
 
 Try:
