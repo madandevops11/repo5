@@ -625,3 +625,9 @@ Loki receives labels/logs
 Grafana Explore works
       ↓
 Dashboard
+
+
+
+
+--> Now login to Grafan dashboard and import dashboard with id 15141
+Make sure to update edit dashboard with "{namespace="monitoring"}"
