@@ -22,7 +22,7 @@ No resources found
 This caused:
 
 Install ebs-csi driver
-kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/ecr/?ref=master"
+kubectl apply -k "github.com/kubernetes-sigs/aws-ebs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
 
 pod has unbound immediate PersistentVolumeClaims
 
