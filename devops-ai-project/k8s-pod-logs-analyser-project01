@@ -807,6 +807,7 @@ This is much better than relying on an LLM
 
 
 FOr Swagger UI from browser:
+http://<VM PUBLIC IP>:8001/docs
 
 ubuntu@k8s-master-ai:~/ai-devops/app$ ss -lntp | grep 8000
 LISTEN 0      4096       127.0.0.1:8000       0.0.0.0:*    users:(("kubectl",pid=15361,fd=7))
