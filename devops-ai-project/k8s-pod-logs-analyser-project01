@@ -234,7 +234,7 @@ pip list
 11. Create main.py
 nano ~/ai-devops/app/main.py
 
-Use the corrected v6.1 version we built.
+Use the main.py contents in same folder in main.py file
 
 The key functionality is:
 
@@ -325,6 +325,9 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 cd ~/ai-devops/app
 
 docker build -t ai-log-analyzer:6.1 .
+
+if docker not installed, install as below:
+sudo apt install docker.io
 
 Check:
 
@@ -444,7 +447,7 @@ spec:
 
           env:
             - name: OLLAMA_URL
-              value: "http://172.31.20.63:11434"
+              value: "http://<PVT IP>:11434"
 
             - name: OLLAMA_MODEL
               value: "qwen2.5:1.5b"
@@ -478,6 +481,11 @@ spec:
       targetPort: 8000
 
   type: ClusterIP
+
+Tag the docker tag or load into containerd
+docker save -o ai-log-analyzer:6.1.tar ai-log-analyzer:6.1
+sudo ctr --namespace k8s.io images import  ai-log-analyzer:6.1.tar
+
 19. Deploy
 kubectl apply -f ~/ai-devops/k8s/ai-log-analyzer.yaml
 
