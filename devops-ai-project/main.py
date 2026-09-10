@@ -1,3 +1,11 @@
+from fastapi import FastAPI
+
+app = FastAPI(
+    title="AI Kubernetes Log Analyzer",
+    description="AI-powered Kubernetes pod log and health analyzer using Ollama and Qwen.",
+    version="6.1"
+)
+
 import os
 import requests
 
