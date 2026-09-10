@@ -1,0 +1,797 @@
+🚀 AI Kubernetes Log Analyzer — Complete Project
+1. Architecture
+
+Your current setup is:
+
+                         ┌─────────────────────┐
+                         │    Kubernetes       │
+                         │     kubeadm         │
+                         └──────────┬──────────┘
+                                    │
+                                    │ Kubernetes API
+                                    ↓
+                         ┌─────────────────────┐
+                         │   FastAPI Analyzer  │
+                         │                     │
+                         │  Deterministic     │
+                         │  Health Engine     │
+                         └──────────┬──────────┘
+                                    │
+                                    │ Evidence
+                                    ↓
+                         ┌─────────────────────┐
+                         │       Ollama        │
+                         │                     │
+                         │   Qwen 2.5 1.5B    │
+                         └──────────┬──────────┘
+                                    │
+                                    ↓
+                         Human-readable RCA
+
+The important design principle is:
+
+Python/Kubernetes determines the actual health. Qwen explains it.
+
+Don't allow a small LLM to decide whether a Kubernetes pod is healthy.
+
+2. Prerequisites
+
+Your current environment:
+
+OS: Ubuntu
+Kubernetes: v1.33.13
+Runtime: containerd
+CNI: Calico
+Node: k8s-master
+CPU: 2 vCPU
+RAM: ~3.8 GB
+
+Check:
+
+kubectl get nodes
+
+Expected:
+
+NAME         STATUS   ROLES           AGE
+k8s-master   Ready    control-plane   ...
+
+Check Kubernetes:
+
+kubectl version --short
+
+Check pods:
+
+kubectl get pods -A
+3. Install Ollama
+
+Ollama runs directly on the Ubuntu host, not inside Kubernetes.
+
+Install:
+
+curl -fsSL https://ollama.com/install.sh | sh
+
+Check:
+
+ollama --version
+
+Start:
+
+sudo systemctl enable ollama
+sudo systemctl start ollama
+
+Check:
+
+sudo systemctl status ollama
+4. Configure Ollama for Kubernetes access
+
+By default, Ollama may listen only on localhost.
+
+You want:
+
+0.0.0.0:11434
+
+Create/edit:
+
+sudo systemctl edit ollama
+
+Add:
+
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+
+Then:
+
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+
+Check:
+
+ss -lntp | grep 11434
+
+Expected:
+
+LISTEN ... 0.0.0.0:11434
+5. Download Qwen
+
+You are using the lightweight model:
+
+ollama pull qwen2.5:1.5b
+
+Check:
+
+ollama list
+
+Expected:
+
+NAME
+qwen2.5:1.5b
+6. Test Ollama locally
+
+Run:
+
+curl --max-time 120 \
+  -X POST http://127.0.0.1:11434/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5:1.5b",
+    "prompt": "Explain CrashLoopBackOff in Kubernetes in 3 simple points.",
+    "stream": false
+  }'
+
+You should receive JSON containing:
+
+"response": "..."
+output as below:
+  {"model":"qwen2.5:1.5b","created_at":"2026-09-10T17:29:32.220640915Z","response":"CrashLoopBackOff is an error condition in Kubernetes that indicates a pod has repeatedly failed to start and then has been restarted multiple times, with the pod state remaining unchanged after each restart. This condition is often observed when a pod is stuck in a degraded state, such as when there's a temporary network issue, or a misconfiguration in the pod's environment.\n\nHere are three key points to understand CrashLoopBackOff:\n\n1. **Temporary State:** CrashLoopBackOff is typically caused by a short-term issue that resolves on its own. It doesn't indicate a permanent failure or misconfiguration. The pod state will revert to `Pending` or `Running` after each CrashLoopBackOff error.\n\n2. **Multiple Restarts:** The pod is restarted multiple times after it fails to start, as indicated by the error message. This means the pod's service or configuration is not properly set up, or there's a temporary problem that's preventing it from starting correctly.\n\n3. **Pod State:** Despite repeated restarts, the pod's overall state remains the same after each CrashLoopBackOff. This is crucial because the pod's current state isn't relevant to diagnosing the underlying problem. The state that will be shown is the state it was in before the last restart.\n\nUnderstanding that a pod has `CrashLoopBackOff` does not necessarily mean the pod has failed permanently; it just indicates that the pod is stuck in a non-recoverable state. Correcting the issue that caused the pod to fail (like a network configuration problem or a misconfigured service) should resolve this error condition and allow the pod to start successfully again.","done":true,"done_reason":"stop","context":[151644,8948,198,2610,525,1207,16948,11,3465,553,54364,14817,13,1446,525,264,10950,17847,13,151645,198,151644,872,198,840,20772,50335,14620,3707,4596,304,66374,304,220,18,4285,3501,13,151645,198,151644,77091,198,16001,988,14620,3707,4596,374,458,1465,2971,304,66374,429,14807,264,7509,702,18822,4641,311,1191,323,1221,702,1012,80654,5248,3039,11,448,279,7509,1584,9664,34857,1283,1817,17024,13,1096,2971,374,3545,13166,979,264,7509,374,15700,304,264,90878,1584,11,1741,438,979,1052,594,264,13340,3922,4265,11,476,264,5786,21138,304,279,7509,594,4573,382,8420,525,2326,1376,3501,311,3535,50335,14620,3707,4596,1447,16,13,3070,59362,3234,66963,50335,14620,3707,4596,374,11136,8881,553,264,2805,9663,4265,429,63297,389,1181,1828,13,1084,3171,944,13216,264,15330,7901,476,5786,21138,13,576,7509,1584,686,41128,311,1565,32027,63,476,1565,18990,63,1283,1817,50335,14620,3707,4596,1465,382,17,13,3070,32089,9063,7038,66963,576,7509,374,80654,5248,3039,1283,432,14525,311,1191,11,438,16317,553,279,1465,1943,13,1096,3363,279,7509,594,2473,476,6546,374,537,10277,738,705,11,476,1052,594,264,13340,3491,429,594,26160,432,504,5916,12440,382,18,13,3070,23527,3234,66963,17715,11504,17024,82,11,279,7509,594,8084,1584,8458,279,1852,1283,1817,50335,14620,3707,4596,13,1096,374,16587,1576,279,7509,594,1482,1584,4436,944,9760,311,13191,14421,279,16533,3491,13,576,1584,429,686,387,6839,374,279,1584,432,572,304,1573,279,1537,17024,382,70151,429,264,7509,702,1565,16001,988,14620,3707,4596,63,1558,537,14312,3076,279,7509,702,4641,30759,26,432,1101,14807,429,279,7509,374,15700,304,264,2477,5504,3688,480,1584,13,39970,287,279,4265,429,8881,279,7509,311,3690,320,4803,264,3922,6546,3491,476,264,5786,81443,2473,8,1265,8830,419,1465,2971,323,2138,279,7509,311,1191,7790,1549,13],"total_duration":31900762593,"load_duration":1578823,"prompt_eval_count":43,"prompt_eval_cached_count":42,"prompt_eval_duration":85528000,"eval_count":332,"eval_duration":31806696000}
+
+Because your machine only has 2 vCPU, Qwen may take 20–40+ seconds.
+
+That's normal for this project.
+
+7. Test Kubernetes → Ollama
+
+Get your node IP:
+
+hostname -I
+
+Your project has been using:
+
+172.31.20.63
+
+Start a temporary curl pod:
+
+kubectl run ollama-test \
+  --image=curlimages/curl \
+  --rm -it \
+  -- sh
+
+Inside:
+
+curl http://<VM PVT IP>:11434/api/tags
+As below:
+
+$ curl http://172.31.18.6:11434/api/tags
+{"models":[{"name":"qwen2.5:1.5b","model":"qwen2.5:1.5b","modified_at":"2026-09-10T17:24:47.068293333Z","size":986061892,"digest":"65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b","details":{"parent_model":"","format":"gguf","family":"qwen2","families":["qwen2"],"parameter_size":"1.5B","quantization_level":"Q4_K_M","context_length":32768,"embedding_length":1536},"capabilities":["completion","tools"]}]}~ 
+
+You should see Qwen in the response.
+
+Exit:
+
+exit
+
+This proves:
+
+Kubernetes Pod
+      ↓
+172.31.20.63:11434
+      ↓
+Ollama
+      ↓
+Qwen
+8. Create project directories
+mkdir -p ~/ai-devops/app
+mkdir -p ~/ai-devops/k8s
+cd ~/ai-devops
+
+Structure:
+
+ai-devops/
+├── app/
+└── k8s/
+9. Create Python requirements
+cd ~/ai-devops/app
+nano requirements.txt
+
+Add:
+
+fastapi
+uvicorn
+pydantic
+requests
+kubernetes
+
+Save.
+
+10. Create Python virtual environment
+cd ~/ai-devops/app
+
+python3 -m venv venv
+
+If python venv is not installed, install as below:
+ sudo apt install python3.12-venv
+
+Activate:
+
+source venv/bin/activate
+
+Install:
+
+pip install -r requirements.txt
+
+Check:
+
+pip list
+11. Create main.py
+nano ~/ai-devops/app/main.py
+
+Use the corrected v6.1 version we built.
+
+The key functionality is:
+
+/health
+/analyze
+/analyze-pod/{namespace}/{pod_name}
+
+The /analyze-pod endpoint retrieves:
+
+Pod phase
+Container state
+Container readiness
+Restart count
+Exit code
+Last terminated state
+Kubernetes events
+Current logs
+Previous logs
+
+Then Python determines:
+
+Healthy
+Warning
+Critical
+
+before sending the evidence to Qwen.
+
+12. Validate Python
+
+This step is important.
+
+cd ~/ai-devops/app
+
+python -m py_compile main.py
+
+If there is no output, syntax is correct.
+
+You can also run:
+
+python -m py_compile main.py && echo "Syntax OK"
+
+Expected:
+
+Syntax OK
+13. Test FastAPI without Docker
+
+Run:
+
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+Keep this terminal open.
+
+In another terminal:
+
+curl http://localhost:8000/health
+
+Expected:
+
+{
+  "status":"healthy",
+  "service":"ai-log-analyzer",
+  "version":"6.1"
+}
+
+Stop FastAPI with:
+
+CTRL+C
+14. Create Dockerfile
+cd ~/ai-devops/app
+nano Dockerfile
+
+Use:
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main.py .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+15. Build Docker image
+cd ~/ai-devops/app
+
+docker build -t ai-log-analyzer:6.1 .
+
+Check:
+
+docker images | grep ai-log-analyzer
+16. Create Kubernetes RBAC
+
+Create:
+
+nano ~/ai-devops/k8s/ai-log-analyzer-rbac.yaml
+
+Use:
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: ai-log-analyzer
+    namespace: default
+roleRef:
+  kind: Role
+  name: ai-log-analyzer
+  apiGroup: rbac.authorization.k8s.io
+
+Apply:
+
+kubectl apply -f ~/ai-devops/k8s/ai-log-analyzer-rbac.yaml
+17. Verify RBAC
+kubectl auth can-i get pods \
+  --as=system:serviceaccount:default:ai-log-analyzer \
+  -n default
+
+Expected:
+
+yes
+
+Events:
+
+kubectl auth can-i get events \
+  --as=system:serviceaccount:default:ai-log-analyzer \
+  -n default
+
+Expected:
+
+yes
+
+Logs:
+
+kubectl auth can-i get pods/log \
+  --as=system:serviceaccount:default:ai-log-analyzer \
+  -n default
+
+Expected:
+
+yes
+18. Create Deployment
+
+Create:
+
+nano ~/ai-devops/k8s/ai-log-analyzer.yaml
+
+Use:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ai-log-analyzer
+
+  template:
+    metadata:
+      labels:
+        app: ai-log-analyzer
+
+    spec:
+      serviceAccountName: ai-log-analyzer
+
+      containers:
+        - name: ai-log-analyzer
+          image: ai-log-analyzer:6.1
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: OLLAMA_URL
+              value: "http://172.31.20.63:11434"
+
+            - name: OLLAMA_MODEL
+              value: "qwen2.5:1.5b"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+spec:
+  selector:
+    app: ai-log-analyzer
+
+  ports:
+    - port: 80
+      targetPort: 8000
+
+  type: ClusterIP
+19. Deploy
+kubectl apply -f ~/ai-devops/k8s/ai-log-analyzer.yaml
+
+Check:
+
+kubectl get pods
+
+Expected:
+
+ai-log-analyzer-xxxxx   1/1   Running
+
+Check service:
+
+kubectl get svc ai-log-analyzer
+20. Check deployment
+kubectl rollout status deployment/ai-log-analyzer
+
+Expected:
+
+deployment "ai-log-analyzer" successfully rolled out
+
+Check logs:
+
+kubectl logs deployment/ai-log-analyzer
+21. Port-forward the API
+
+Run:
+
+kubectl port-forward svc/ai-log-analyzer 8000:80
+
+Expected:
+
+Forwarding from 127.0.0.1:8000 -> 8000
+
+Keep this terminal running.
+
+Remember:
+
+localhost:8000
+
+is your kubectl port-forward, not a separate FastAPI process.
+
+22. Test health
+
+From another terminal:
+
+curl http://localhost:8000/health
+
+Expected:
+
+{
+  "status":"healthy",
+  "service":"ai-log-analyzer",
+  "version":"6.1"
+}
+23. Test basic AI analysis
+curl --max-time 240 \
+  -X POST http://localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "logs":"Application started successfully"
+  }'
+
+You should receive:
+
+{
+  "model":"qwen2.5:1.5b",
+  "analysis":"..."
+}
+24. Create a deliberately failing application
+
+This is how we test the actual Kubernetes troubleshooting functionality.
+
+kubectl create deployment ai-test-crash \
+  --image=busybox \
+  -- /bin/sh -c \
+  'echo "Application starting"; sleep 5; echo "Application crashed"; exit 1'
+
+Check:
+
+kubectl get pods -l app=ai-test-crash
+
+Initially you may see:
+
+Running
+
+After a while:
+
+kubectl get pods -l app=ai-test-crash
+
+You should eventually see:
+
+CrashLoopBackOff
+25. Inspect the failing application manually
+
+Get pod name:
+
+POD=$(kubectl get pods \
+  -l app=ai-test-crash \
+  -o jsonpath='{.items[0].metadata.name}')
+
+echo $POD
+
+Check:
+
+kubectl get pod $POD
+
+Describe:
+
+kubectl describe pod $POD
+
+Logs:
+
+kubectl logs $POD
+
+Previous logs:
+
+kubectl logs $POD --previous
+
+Events:
+
+kubectl get events \
+  --field-selector involvedObject.name=$POD
+
+You should see evidence such as:
+
+BackOff
+Back-off restarting failed container
+26. Let AI Analyzer investigate it
+
+This is the important test.
+
+curl --max-time 240 \
+  http://localhost:8000/analyze-pod/default/$POD
+
+Your current successful result looked like:
+
+{
+  "current_health": "Critical",
+  "detected_problem": "CrashLoopBackOff",
+  "pod_phase": "Running",
+  "total_restarts": 7
+}
+
+And:
+
+{
+  "name": "busybox",
+  "ready": false,
+  "restart_count": 7,
+  "state": "Waiting",
+  "reason": "CrashLoopBackOff"
+}
+
+That means the deterministic engine is working.
+
+27. Understand why Running + CrashLoopBackOff is possible
+
+This is an important Kubernetes concept.
+
+You may see:
+
+Pod Phase: Running
+
+while the container is:
+
+Waiting
+Reason: CrashLoopBackOff
+
+That's because:
+
+Pod phase
+
+and:
+
+Container state
+
+are different things.
+
+Therefore your analyzer correctly checks:
+
+Pod phase
++
+Container state
++
+Ready
++
+Restart count
++
+Events
++
+Exit code
+
+instead of simply saying:
+
+Running = Healthy
+28. The actual root cause of your test
+
+Your test command was:
+
+/bin/sh -c 'echo "Application starting"; sleep 5; echo "Application crashed"; exit 1'
+
+Therefore:
+
+Application starts
+       ↓
+wait 5 seconds
+       ↓
+Application crashed
+       ↓
+exit 1
+       ↓
+Kubernetes restarts container
+       ↓
+repeat
+       ↓
+CrashLoopBackOff
+
+So the correct diagnosis is:
+
+Current Status:
+Critical
+
+Problem:
+CrashLoopBackOff
+
+Root Cause:
+Application process exits with exit code 1.
+
+Evidence:
+Application crashed
+exit_code=1
+restart_count=7
+BackOff event
+
+It is not:
+
+Memory problem
+Disk problem
+Firewall problem
+Network problem
+Image pull problem
+
+unless Kubernetes provides evidence for those.
+
+29. Important limitation discovered with Qwen 1.5B
+
+Your test exposed an important issue.
+
+Qwen previously said:
+
+insufficient resources such as memory or disk space
+
+There was no evidence for that.
+
+It also mentioned:
+
+ImagePullBackOff
+
+even though the image was successfully pulled.
+
+Therefore:
+
+Don't use Qwen to determine Kubernetes health.
+
+Use:
+
+Python
+ ↓
+Kubernetes API
+ ↓
+Deterministic diagnosis
+
+Then:
+
+Deterministic diagnosis
+ ↓
+Qwen
+ ↓
+Explanation
+
+This makes your project considerably more reliable.
+
+30. Current v6.1 decision logic
+
+Your Python engine currently follows roughly:
+
+CrashLoopBackOff
+      ↓
+Critical
+
+ImagePullBackOff
+      ↓
+Critical
+
+OOMKilled
+      ↓
+Critical
+
+Pending
+      ↓
+Warning
+
+Container problem
+      ↓
+Warning
+
+Running + Ready + restart_count > 0
+      ↓
+Warning
+Recovered container instability
+
+Running + Ready + restart_count = 0
+      ↓
+Healthy
+
+This is much better than relying on an LLM
