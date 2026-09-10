@@ -803,3 +803,17 @@ Running + Ready + restart_count = 0
 Healthy
 
 This is much better than relying on an LLM
+
+
+
+FOr Swagger UI from browser:
+
+ubuntu@k8s-master-ai:~/ai-devops/app$ ss -lntp | grep 8000
+LISTEN 0      4096       127.0.0.1:8000       0.0.0.0:*    users:(("kubectl",pid=15361,fd=7))
+LISTEN 0      4096           [::1]:8000          [::]:*    users:(("kubectl",pid=15361,fd=8))
+
+ubuntu@k8s-master-ai:~/ai-devops/app$ kubectl port-forward --address 0.0.0.0 svc/ai-log-analyzer 8001:80
+Forwarding from 0.0.0.0:8001 -> 8000
+Handling connection for 8001
+Handling connection for 8001
+Handling connection for 8001
