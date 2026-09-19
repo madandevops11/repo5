@@ -1,0 +1,86 @@
+Project is same as https://github.com/madandevops11/repo5/blob/main/devops-ai-project/k8s-pod-logs-analyser-project01
+
+Only change is as below:
+
+Step1: rebauild the docker image using updated main.py (make sure openai vars are updated)
+
+step2: requirements.txt as below
+
+fastapi
+uvicorn
+pydantic
+requests
+kubernetes
+openai
+
+Step3: Deploy this image in k8s manifest
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ai-log-analyzer
+
+  template:
+    metadata:
+      labels:
+        app: ai-log-analyzer
+
+    spec:
+      serviceAccountName: ai-log-analyzer
+
+      containers:
+        - name: ai-log-analyzer
+          image: ai-log-analyzer:8.3
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: OPENAI_API_KEY
+              value: "XXXXXXXXXXXXXXX"
+
+            - name: OPENAI_MODEL
+              value: "gpt-5.6-luna"
+            #            - name: OLLAMA_URL
+            #              value: "http://172.31.18.250:11434"
+
+            #            - name: OLLAMA_MODEL
+            #              value: "qwen2.5:1.5b"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-log-analyzer
+  namespace: default
+spec:
+  selector:
+    app: ai-log-analyzer
+
+  ports:
+    - port: 80
+      targetPort: 8000
+
+  type: ClusterIP
