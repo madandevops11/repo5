@@ -1,1 +1,8 @@
 New 3 tier project for docker-compose and k8s
+
+
+## Command ###
+docker-compose up
+
+access UI: http://<public-ip/localhost>:8080
+access Backend : http://<public-ip/localhost>:8000/docs
