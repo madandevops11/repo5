@@ -1,5 +1,11 @@
 New 3 tier project for docker-compose and k8s
 
+Make sure the files are present as below:
+
+ubuntu@k8s-master:~/three-tier-todo$ ls
+README.md  backend  database  docker-compose.yml  frontend  k8s
+ubuntu@k8s-master:~/three-tier-todo$ pwd
+/home/ubuntu/three-tier-todo
 
 ## Command ###
 docker-compose up
