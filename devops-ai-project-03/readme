@@ -1,1 +1,772 @@
+AI Kubernetes Security Analyzer — Complete Step-by-Step
+1. Architecture
+The security project should use this architecture:
+                         Kubernetes Cluster
+                                │
+                                │ Kubernetes API
+                                ▼
+                 ┌─────────────────────────────┐
+                 │ FastAPI Security Analyzer   │
+                 │                             │
+                 │ Deterministic Security      │
+                 │ Rules Engine                │
+                 └──────────────┬──────────────┘
+                                │
+                                │ Security Evidence
+                                ▼
+                       ┌─────────────────┐
+                       │ OpenAI / Ollama │
+                       │      LLM        │
+                       └────────┬────────┘
+                                │
+                                ▼
+                  Human-readable Security
+                  Findings + Remediation
 
+The most important design principle should remain the same as your log analyzer:
+Python/Kubernetes determines the security finding. The LLM explains the finding.
+
+Your uploaded project explicitly established this principle for reliability: the LLM should not be allowed to decide the actual Kubernetes state.    Pasted text
+For security, this is even more important.
+2. Prerequisites
+Use the same environment as your existing project initially:
+OS: Ubuntu
+Kubernetes: kubeadm cluster
+Runtime: containerd
+CNI: Calico
+
+Check:
+kubectl get nodes
+
+Expected:
+NAME          STATUS   ROLES
+k8s-master    Ready    control-plane
+
+Check:
+kubectl get pods -A
+
+And:
+kubectl version
+
+3. Create Project Directory
+mkdir -p ~/ai-k8s-security-analyzer/app
+mkdir -p ~/ai-k8s-security-analyzer/k8s
+cd ~/ai-k8s-security-analyzer
+
+Structure:
+ai-k8s-security-analyzer/
+│
+├── app/
+│   ├── main.py
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+└── k8s/
+    ├── rbac.yaml
+    ├── deployment.yaml
+    └── test-bad-workload.yaml
+
+4. Security Checks
+The deterministic engine should check Kubernetes objects for security issues.
+I recommend starting with these:
+Container security
+Privileged container
+Running as root
+Privilege escalation enabled
+Host network
+Host PID
+Host IPC
+HostPath mounts
+Missing resource limits
+Unsafe capabilities
+Missing seccomp
+
+Image security
+latest tag
+Unpinned image
+Image without digest
+
+Kubernetes security
+Default ServiceAccount
+AutomountServiceAccountToken
+Excessive RBAC
+Wildcard permissions
+cluster-admin binding
+
+Network security
+Missing NetworkPolicy
+Unrestricted ingress
+Unrestricted egress
+
+This gives you a much more useful security scanner than simply checking whether a pod is Running.
+5. Install Python Dependencies
+Create:
+cd ~/ai-k8s-security-analyzer/app
+nano requirements.txt
+
+Use:
+fastapi
+uvicorn
+kubernetes
+pydantic
+requests
+
+Install:
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+Verify:
+pip list
+
+6. Create Security Analyzer
+Create:
+nano ~/ai-k8s-security-analyzer/app/main.py
+
+The application should expose:
+GET  /health
+
+GET  /scan
+
+GET  /scan/pod/{namespace}/{pod_name}
+
+GET  /scan/namespace/{namespace}
+
+GET  /scan/rbac
+
+POST /analyze
+
+The important difference from your log analyzer is that /scan should inspect Kubernetes configuration rather than application logs.
+For example:
+Kubernetes Pod
+      │
+      ├── privileged?
+      ├── root?
+      ├── hostNetwork?
+      ├── hostPID?
+      ├── hostPath?
+      ├── capabilities?
+      ├── seccomp?
+      ├── resource limits?
+      └── image security?
+             │
+             ▼
+      Deterministic Rules
+             │
+             ▼
+       Security Findings
+             │
+             ▼
+           LLM
+             │
+             ▼
+      Explanation/Remediation
+
+7. Security Severity
+Use deterministic severity.
+For example:
+CRITICAL
+HIGH
+MEDIUM
+LOW
+INFO
+
+Example rules:
+Finding	Severity
+privileged: true	CRITICAL
+hostPID: true	HIGH
+hostNetwork: true	HIGH
+hostPath	HIGH
+runAsUser: 0	HIGH
+allowPrivilegeEscalation: true	HIGH
+dangerous capability	HIGH
+cluster-admin binding	CRITICAL
+wildcard RBAC	HIGH
+missing resource limits	MEDIUM
+:latest image	MEDIUM
+missing NetworkPolicy	MEDIUM
+default ServiceAccount	LOW/MEDIUM
+
+
+The actual severity should be determined by Python, not by the LLM.
+8. Validate Python
+Before deploying:
+cd ~/ai-k8s-security-analyzer/app
+
+python -m py_compile main.py
+
+Expected:
+
+
+No output means syntax is valid.
+Or:
+python -m py_compile main.py && echo "Syntax OK"
+
+Expected:
+Syntax OK
+
+This follows the same validation approach used in your existing project.    Pasted text
+9. Run Security Analyzer Locally
+Start:
+cd ~/ai-k8s-security-analyzer/app
+
+source venv/bin/activate
+
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+From another terminal:
+curl http://localhost:8000/health
+
+Expected:
+{
+  "status": "healthy",
+  "service": "ai-k8s-security-analyzer"
+}
+
+10. Test Kubernetes Access
+The analyzer needs permission to read Kubernetes resources.
+First test manually:
+kubectl get pods -A
+
+Then:
+kubectl get rolebindings -A
+
+And:
+kubectl get clusterrolebindings
+
+The analyzer should eventually be able to read:
+pods
+pods/log
+deployments
+daemonsets
+statefulsets
+services
+serviceaccounts
+roles
+rolebindings
+clusterroles
+clusterrolebindings
+networkpolicies
+namespaces
+events
+
+11. Create Kubernetes RBAC
+Create:
+nano ~/ai-k8s-security-analyzer/k8s/rbac.yaml
+
+A good starting point:
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-k8s-security-analyzer
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ai-k8s-security-analyzer
+rules:
+
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - serviceaccounts
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    verbs:
+      - get
+
+  - apiGroups: [""]
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - daemonsets
+      - statefulsets
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - get
+      - list
+      - watch
+
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ai-k8s-security-analyzer
+subjects:
+  - kind: ServiceAccount
+    name: ai-k8s-security-analyzer
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: ai-k8s-security-analyzer
+  apiGroup: rbac.authorization.k8s.io
+
+Apply:
+kubectl apply -f ~/ai-k8s-security-analyzer/k8s/rbac.yaml
+
+12. Verify RBAC
+Check:
+kubectl auth can-i list pods \
+  --as=system:serviceaccount:default:ai-k8s-security-analyzer \
+  --all-namespaces
+
+Expected:
+yes
+
+Check deployments:
+kubectl auth can-i list deployments.apps \
+  --as=system:serviceaccount:default:ai-k8s-security-analyzer \
+  --all-namespaces
+
+Expected:
+yes
+
+Check RBAC:
+kubectl auth can-i list clusterrolebindings.rbac.authorization.k8s.io \
+  --as=system:serviceaccount:default:ai-k8s-security-analyzer
+
+Expected:
+yes
+
+This verification step is important; your existing analyzer similarly validates pods, events, and pods/log permissions before deployment.    Pasted text
+13. Create Dockerfile
+nano ~/ai-k8s-security-analyzer/app/Dockerfile
+
+Use:
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main.py .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+14. Build Docker Image
+cd ~/ai-k8s-security-analyzer/app
+
+docker build -t ai-k8s-security-analyzer:1.0 .
+
+Check:
+docker images | grep ai-k8s-security-analyzer
+
+Expected:
+ai-k8s-security-analyzer   1.0
+
+15. Import Image Into Kubernetes
+Because your cluster uses containerd:
+docker save -o ai-k8s-security-analyzer.tar \
+  ai-k8s-security-analyzer:1.0
+
+Then:
+sudo ctr --namespace k8s.io images import \
+  ai-k8s-security-analyzer.tar
+
+Verify:
+sudo ctr --namespace k8s.io images list | \
+grep ai-k8s-security-analyzer
+
+16. Deploy Security Analyzer
+Create:
+nano ~/ai-k8s-security-analyzer/k8s/deployment.yaml
+
+Use:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-k8s-security-analyzer
+  namespace: default
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ai-k8s-security-analyzer
+
+  template:
+    metadata:
+      labels:
+        app: ai-k8s-security-analyzer
+
+    spec:
+      serviceAccountName: ai-k8s-security-analyzer
+
+      containers:
+        - name: ai-k8s-security-analyzer
+
+          image: ai-k8s-security-analyzer:1.0
+
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8000
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-k8s-security-analyzer
+  namespace: default
+
+spec:
+  selector:
+    app: ai-k8s-security-analyzer
+
+  ports:
+    - port: 80
+      targetPort: 8000
+
+  type: ClusterIP
+
+Deploy:
+kubectl apply -f ~/ai-k8s-security-analyzer/k8s/deployment.yaml
+
+17. Verify Deployment
+kubectl get pods
+
+Expected:
+ai-k8s-security-analyzer-xxxxx   1/1   Running
+
+Then:
+kubectl rollout status deployment/ai-k8s-security-analyzer
+
+Expected:
+deployment "ai-k8s-security-analyzer" successfully rolled out
+
+Check logs:
+kubectl logs deployment/ai-k8s-security-analyzer
+
+18. Port Forward
+kubectl port-forward \
+  svc/ai-k8s-security-analyzer \
+  8000:80
+
+For remote VM access:
+kubectl port-forward \
+  --address 0.0.0.0 \
+  svc/ai-k8s-security-analyzer \
+  8001:80
+
+Then:
+http://<VM-IP>:8001/docs
+
+This follows the same pattern you used for the existing analyzer's Swagger UI.    Pasted text
+19. Test Health
+curl http://localhost:8000/health
+
+Expected:
+{
+  "status": "healthy",
+  "service": "ai-k8s-security-analyzer"
+}
+
+20. First Security Scan
+Run:
+curl http://localhost:8000/scan
+
+The analyzer should return something similar to:
+{
+  "summary": {
+    "critical": 1,
+    "high": 3,
+    "medium": 5,
+    "low": 2
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "resource": "pod/example",
+      "rule": "PRIVILEGED_CONTAINER",
+      "message": "Container is running in privileged mode"
+    }
+  ]
+}
+
+The important part is that these findings are produced by deterministic Python rules.
+21. Create Intentionally Insecure Workload
+This is the equivalent of your CrashLoop test in the existing project.
+Create:
+nano ~/ai-k8s-security-analyzer/k8s/test-bad-workload.yaml
+
+Use:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: insecure-test
+  namespace: default
+
+spec:
+  hostNetwork: true
+  hostPID: true
+
+  containers:
+    - name: insecure-container
+      image: nginx:latest
+
+      securityContext:
+        privileged: true
+        runAsUser: 0
+        allowPrivilegeEscalation: true
+
+        capabilities:
+          add:
+            - NET_ADMIN
+            - SYS_ADMIN
+
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+
+  volumes:
+    - name: host-root
+      hostPath:
+        path: /
+        type: Directory
+
+Apply:
+kubectl apply -f \
+~/ai-k8s-security-analyzer/k8s/test-bad-workload.yaml
+
+22. Manually Inspect Security Problem
+Run:
+kubectl get pod insecure-test -o yaml
+
+You should see:
+hostNetwork: true
+hostPID: true
+
+And:
+privileged: true
+
+And:
+runAsUser: 0
+
+And:
+allowPrivilegeEscalation: true
+
+And:
+NET_ADMIN
+SYS_ADMIN
+
+And:
+hostPath:
+  path: /
+
+So this single test pod gives your scanner multiple security findings.
+23. Run Analyzer Against the Pod
+curl \
+  http://localhost:8000/scan/pod/default/insecure-test
+
+Expected type of result:
+{
+  "resource": "pod/insecure-test",
+  "security_score": 10,
+  "findings": [
+    {
+      "severity": "CRITICAL",
+      "rule": "PRIVILEGED_CONTAINER",
+      "evidence": "privileged=true"
+    },
+    {
+      "severity": "HIGH",
+      "rule": "HOST_NETWORK",
+      "evidence": "hostNetwork=true"
+    },
+    {
+      "severity": "HIGH",
+      "rule": "HOST_PID",
+      "evidence": "hostPID=true"
+    },
+    {
+      "severity": "HIGH",
+      "rule": "HOST_PATH",
+      "evidence": "hostPath=/"
+    },
+    {
+      "severity": "HIGH",
+      "rule": "RUN_AS_ROOT",
+      "evidence": "runAsUser=0"
+    }
+  ]
+}
+
+This is the core demonstration of your project.
+24. Add LLM Explanation
+Once the deterministic scan works:
+Kubernetes API
+      ↓
+Security rules
+      ↓
+Finding
+      ↓
+Evidence
+      ↓
+LLM
+      ↓
+Explanation
+      ↓
+Remediation
+
+For example, Python determines:
+CRITICAL
+PRIVILEGED_CONTAINER
+
+The LLM can then generate:
+Why this is dangerous:
+The container has full access to host-level capabilities.
+
+Recommended remediation:
+Remove privileged: true and use only the specific Linux
+capabilities required by the application.
+
+The LLM does not determine that privileged=true is dangerous.
+25. OpenAI Instead of Ollama
+Since you've already been considering moving your AI projects from Ollama to OpenAI, I recommend the security analyzer use the same pattern.
+Instead of:
+OLLAMA_URL
+OLLAMA_MODEL
+
+use:
+OPENAI_API_KEY
+OPENAI_MODEL
+
+Kubernetes:
+env:
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: openai-secret
+        key: api-key
+
+  - name: OPENAI_MODEL
+    value: "gpt-5.6-mini"
+
+And keep the architecture:
+               Kubernetes API
+                     │
+                     ▼
+             Security Scanner
+                     │
+                     ▼
+          Deterministic Findings
+                     │
+                     ▼
+               OpenAI API
+                     │
+                     ▼
+          Explanation + Fix
+
+This means you don't need Ollama installed on the Kubernetes VM if you use OpenAI.
+26. Security Score
+I would add a security score to make the project more impressive.
+For example:
+100 = secure
+ 80 = good
+ 60 = needs attention
+ 40 = high risk
+ 20 = critical
+
+Example:
+Security Score: 25/100
+
+Critical: 2
+High:     5
+Medium:   4
+Low:      3
+
+You can calculate this deterministically.
+27. Final Project Flow
+Your finished project should look like:
+                         ┌──────────────────┐
+                         │    Kubernetes    │
+                         └────────┬─────────┘
+                                  │
+                                  ▼
+                         Kubernetes API
+                                  │
+                                  ▼
+                 ┌───────────────────────────┐
+                 │ FastAPI Security Scanner  │
+                 └─────────────┬─────────────┘
+                               │
+                               ▼
+                    Deterministic Rules
+                               │
+             ┌─────────────────┼─────────────────┐
+             ▼                 ▼                 ▼
+        Pod Security       RBAC Scan       Network Scan
+             │                 │                 │
+             └─────────────────┼─────────────────┘
+                               ▼
+                         Findings
+                               │
+                               ▼
+                       Security Score
+                               │
+                               ▼
+                        OpenAI / LLM
+                               │
+                               ▼
+                  Explanation + Remediation
+                               │
+                               ▼
+                         REST API
+                               │
+                               ▼
+                        Swagger UI
